@@ -1,0 +1,20 @@
+{
+  "name": "webgis-story",
+  "version": "1.0.0",
+  "description": "A simple Single Page Application (SPA) WebGIS Story built using HTML, CSS, and JavaScript with Leaflet maps.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "author": "Darren",
+  "license": "MIT",
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

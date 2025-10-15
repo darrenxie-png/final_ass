@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Pantai Indah",
+    "desc": "Tempat yang indah untuk menikmati matahari terbenam.",
+    "photo": "https://source.unsplash.com/800x400/?beach",
+    "latlng": [-6.125, 106.75],
+    "date": "2025-10-06"
+  },
+  {
+    "name": "Gunung Sejuk",
+    "desc": "Pendakian seru dengan pemandangan spektakuler.",
+    "photo": "https://source.unsplash.com/800x400/?mountain",
+    "latlng": [-6.7, 107.0],
+    "date": "2025-10-03"
+  }
+]

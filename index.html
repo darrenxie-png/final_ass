@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebGIS Story</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#2f3640">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Manifest untuk PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2e8b57">
+</head>
+<body>
+  <a href="#mainContent" class="skip-link">Lewati ke Konten</a>
+
+  <header>
+        <h1 class="logo">StoryApp</h1>vigasi utama">
+        <div id="navLinks" class="nav-buttons">
+          <!-- Tombol dinamis login/logout akan dimuat lewat main.js -->
+        </div>d="navLinks" class="nav-buttons">
+      </div>-- Tombol dinamis login/logout akan dimuat lewat main.js -->
+    </nav>div>
+  </header>>
+    </nav>
+  <main id="mainContent" tabindex="-1">
+    <!-- Konten SPA akan dimuat oleh router.js -->
+  </main>d="mainContent" tabindex="-1">
+    <!-- Konten SPA akan dimuat oleh router.js -->
+  <footer>
+    <p>© 2025 WebGIS Story by Darren</p>
+  </footer>
+    <p>© 2025 WebGIS Story by Darren</p>
+  <!-- File JS utama -->
+  <script type="module" src="js/router.js"></script>
+  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/router.js"></script>
+    // ✅ Daftarkan service worker untuk PWA
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('Service Worker terdaftar:', reg.scope))
+          .catch(err => console.log('Gagal daftar SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>
+</body>
+</html>
