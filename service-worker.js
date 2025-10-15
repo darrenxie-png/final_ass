@@ -10,9 +10,13 @@ const urlsToCache = [
   './js/login.js',
   './js/register.js',
   './js/home.js',
+  './js/indexedDB.js',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 ];
 
 // Install SW & cache files
