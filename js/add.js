@@ -1,34 +1,120 @@
+
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { BookmarkStore } from './utils/database.js';
 
-const Add = {
+const Home = {
+  map: null,
+  stories: [],
+
   async render() {
     return `
-      <section class="add-section">
-        <h2 class="page-title">Tambah Story Baru</h2>
-        <form id="addForm" class="add-form">
-          <label for="name">Nama</label>
-          <input type="text" id="name" name="name" placeholder="Nama story" required />
+      <section class="home-section">
+        <h2 class="page-title">📍 Daftar Story</h2>
+        <div id="map" class="map-container"></div>
 
-          <label for="description">Deskripsi</label>
-          <textarea id="description" name="description" placeholder="Deskripsi cerita" required></textarea>
+        <div class="story-controls">
+          <button id="showAllBtn" class="active">Semua Story</button>
+          <button id="showBookmarkedBtn">Story Tersimpan</button>
+        </div>
 
-          <label for="photo">Foto</label>
-          <input type="file" id="photo" name="photo" accept="image/*" required />
-
-          <label>Pilih Lokasi di Peta</label>
-          <div id="map" class="map-container"></div>
-
-          <label for="lat">Latitude</label>
-          <input type="text" id="lat" name="lat" placeholder="Klik peta untuk menentukan" readonly required />
-
-          <label for="lon">Longitude</label>
-          <input type="text" id="lon" name="lon" placeholder="Klik peta untuk menentukan" readonly required />
-
-          <button type="submit" class="submit-btn">Tambah Story</button>
-        </form>
+        <div id="stories" class="story-list"></div>
       </section>
     `;
+  },
+
+  initializeMap() {
+    console.log('🗺️ Inisialisasi peta...');
+
+    // Hapus peta lama jika ada
+    if (this.map) {
+      this.map.remove();
+    }
+
+    // Pastikan elemen peta ada
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+      console.error('❌ Elemen peta tidak ditemukan!');
+      return;
+    }
+
+    // Buat peta baru
+    this.map = L.map('map').setView([-2.5489, 118.0149], 5);
+
+    // Tambahkan tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(this.map);
+
+    // Perbaiki tampilan ukuran peta
+    setTimeout(() => this.map.invalidateSize(), 200);
+    setTimeout(() => this.map.invalidateSize(), 500);
+
+    console.log('✅ Peta berhasil dibuat');
+  },
+
+  async renderStories(stories, container) {
+    container.innerHTML = '';
+
+    // Bersihkan marker lama
+    if (this.map) {
+      this.map.eachLayer(layer => {
+        if (layer instanceof L.Marker) {
+          this.map.removeLayer(layer);
+        }
+      });
+    }
+
+    for (const story of stories) {
+      const isBookmarked = await BookmarkStore.isBookmarked(story.id);
+
+      // Tambahkan marker jika ada koordinat
+      if (story.lat && story.lon && this.map) {
+        try {
+          const lat = parseFloat(story.lat);
+          const lon = parseFloat(story.lon);
+
+          if (!isNaN(lat) && !isNaN(lon)) {
+            L.marker([lat, lon])
+              .addTo(this.map)
+              .bindPopup(`
+                <div class="popup-content">
+                  <h3>${story.name}</h3>
+                  <p>${story.description}</p>
+                  <img src="${story.photoUrl}" 
+                       alt="${story.name}" 
+                       style="max-width:200px; border-radius:4px;">
+                </div>
+              `);
+          }
+        } catch (error) {
+          console.error('⚠️ Gagal menambahkan marker:', error);
+        }
+      }
+
+      // Tambahkan ke daftar story
+      container.innerHTML += `
+        <article class="story-card" data-id="${story.id}">
+          <img src="${story.photoUrl}" alt="${story.name}" class="story-img">
+          <div class="story-info">
+            <h3>${story.name}</h3>
+            <p>${story.description}</p>
+            ${
+              story.lat && story.lon
+                ? `<p class="location">📍 ${story.lat}, ${story.lon}</p>`
+                : '<p class="location">📍 Tidak ada lokasi</p>'
+            }
+            <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" 
+                    data-id="${story.id}">
+              ${isBookmarked ? '★' : '☆'}
+            </button>
+          </div>
+        </article>
+      `;
+    }
+
+    console.log(`✅ ${stories.length} story berhasil ditampilkan`);
   },
 
   async afterRender() {
@@ -39,93 +125,74 @@ const Add = {
         return;
       }
 
-      // Clear existing map if present
-      const mapContainer = L.DomUtil.get('map');
-      if (mapContainer != null) {
-        mapContainer._leaflet_id = null;
-      }
+      const storyContainer = document.getElementById('stories');
+      const showAllBtn = document.getElementById('showAllBtn');
+      const showBookmarkedBtn = document.getElementById('showBookmarkedBtn');
 
-      // Initialize map
-      const map = L.map('map').setView([-2.5, 118], 5);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(map);
+      // Inisialisasi peta terlebih dahulu
+      this.initializeMap();
 
-      // Add initial marker
-      let marker = L.marker([-2.5, 118]).addTo(map).bindPopup('📍 -2.500000, 118.000000').openPopup();
-
-      // Handle map clicks
-      map.on('click', (e) => {
-        const { lat, lng } = e.latlng;
-        document.getElementById('lat').value = lat.toFixed(6);
-        document.getElementById('lon').value = lng.toFixed(6);
-
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lng]).addTo(map).bindPopup(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
+      // Ambil data dari API
+      const response = await fetch('https://story-api.dicoding.dev/v1/stories', {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Invalidate map size to ensure proper rendering
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100);
+      const data = await response.json();
+      console.log('🧭 Data story diterima:', data);
 
-      // Handle form submission
-      document.getElementById('addForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
+      if (!data.listStory) {
+        console.warn('⚠️ Tidak ada data story ditemukan');
+        return;
+      }
+
+      this.stories = data.listStory;
+      console.log(`📦 Total story: ${this.stories.length}`);
+
+      // Render story pertama kali
+      await this.renderStories(this.stories, storyContainer);
+
+      // Klik bookmark
+      storyContainer.addEventListener('click', async (e) => {
+        if (!e.target.classList.contains('bookmark-btn')) return;
+
+        const btn = e.target;
+        const storyId = btn.dataset.id;
+        const story = this.stories.find(s => s.id === storyId);
+        const isActive = btn.classList.contains('active');
+
         try {
-          const name = document.getElementById('name').value;
-          const description = document.getElementById('description').value;
-          const photo = document.getElementById('photo').files[0];
-          const lat = document.getElementById('lat').value;
-          const lon = document.getElementById('lon').value;
-
-          if (!name || !description || !photo || !lat || !lon) {
-            alert('Semua field harus diisi dan lokasi harus dipilih!');
-            return;
-          }
-
-          const formData = new FormData();
-          formData.append('description', `${name} - ${description}`);
-          formData.append('photo', photo);
-          formData.append('lat', lat);
-          formData.append('lon', lon);
-
-          const response = await fetch('https://story-api.dicoding.dev/v1/stories', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData,
-          });
-
-          const result = await response.json();
-          
-          if (result.error === false) {
-            alert(result.message || 'Story berhasil ditambahkan!');
-            
-            // Show notification if permission granted
-            if (Notification.permission === 'granted') {
-              new Notification('Story Baru Ditambahkan!', {
-                body: `"${name}" berhasil dipublikasikan`,
-                icon: '/final_ass/assets/icons/icon-192.png'
-              });
-            }
-            
-            // Redirect to home
-            window.location.hash = '#/home';
+          if (isActive) {
+            await BookmarkStore.removeBookmark(storyId);
+            btn.classList.remove('active');
+            btn.textContent = '☆';
           } else {
-            alert(`Error: ${result.message}`);
+            await BookmarkStore.saveBookmark(story);
+            btn.classList.add('active');
+            btn.textContent = '★';
           }
         } catch (error) {
-          console.error('Failed to add story:', error);
-          alert('Gagal menambahkan story: ' + error.message);
+          console.error('❌ Gagal update bookmark:', error);
         }
       });
 
+      // Tombol filter
+      showAllBtn.addEventListener('click', async () => {
+        showAllBtn.classList.add('active');
+        showBookmarkedBtn.classList.remove('active');
+        await this.renderStories(this.stories, storyContainer);
+      });
+
+      showBookmarkedBtn.addEventListener('click', async () => {
+        showAllBtn.classList.remove('active');
+        showBookmarkedBtn.classList.add('active');
+        const bookmarks = await BookmarkStore.getBookmarks();
+        await this.renderStories(bookmarks, storyContainer);
+      });
+
     } catch (error) {
-      console.error('Failed to initialize add page:', error);
+      console.error('❌ Gagal inisialisasi halaman home:', error);
     }
   },
 };
 
-export default Add;
+export default Home;
