@@ -1,7 +1,6 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-
 const Add = {
   async render() {
     return `
@@ -33,63 +32,100 @@ const Add = {
   },
 
   async afterRender() {
-    const token = localStorage.getItem('token');
-    const mapContainer = L.DomUtil.get('map');
-    if (mapContainer != null) {
-      mapContainer._leaflet_id = null;
-    }
-
-    const map = L.map('map').setView([-2.5, 118], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-    }).addTo(map);
-
-    // Add a marker at the initial center
-    let marker = L.marker([-2.5, 118]).addTo(map).bindPopup('📍 -2.500000, 118.000000').openPopup();
-
-    map.on('click', (e) => {
-      const { lat, lng } = e.latlng;
-      document.getElementById('lat').value = lat.toFixed(6);
-      document.getElementById('lon').value = lng.toFixed(6);
-
-      if (marker) map.removeLayer(marker);
-      marker = L.marker([lat, lng]).addTo(map).bindPopup(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
-    });
-
-    document.getElementById('addForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      try {
-        const formData = new FormData();
-        formData.append('description', document.getElementById('description').value);
-        formData.append('photo', document.getElementById('photo').files[0]);
-        formData.append('lat', document.getElementById('lat').value);
-        formData.append('lon', document.getElementById('lon').value);
-
-        const response = await fetch('https://story-api.dicoding.dev/v1/stories', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-
-        const result = await response.json();
-        alert(result.message || 'Story berhasil ditambahkan!');
-        
-        if (result.error === false) {
-          // Show notification if permission granted
-          if (Notification.permission === 'granted') {
-            const notification = new Notification('Story Baru Ditambahkan!', {
-              body: 'Story berhasil dipublikasikan',
-              icon: './icons/icon-192.png'
-            });
-          }
-          
-          window.location.hash = '/';
-        }
-      } catch (error) {
-        alert('Gagal menambahkan story: ' + error.message);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.hash = '#/login';
+        return;
       }
-    });
+
+      // Clear existing map if present
+      const mapContainer = L.DomUtil.get('map');
+      if (mapContainer != null) {
+        mapContainer._leaflet_id = null;
+      }
+
+      // Initialize map
+      const map = L.map('map').setView([-2.5, 118], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      // Add initial marker
+      let marker = L.marker([-2.5, 118]).addTo(map).bindPopup('📍 -2.500000, 118.000000').openPopup();
+
+      // Handle map clicks
+      map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        document.getElementById('lat').value = lat.toFixed(6);
+        document.getElementById('lon').value = lng.toFixed(6);
+
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng]).addTo(map).bindPopup(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
+      });
+
+      // Invalidate map size to ensure proper rendering
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+
+      // Handle form submission
+      document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        try {
+          const name = document.getElementById('name').value;
+          const description = document.getElementById('description').value;
+          const photo = document.getElementById('photo').files[0];
+          const lat = document.getElementById('lat').value;
+          const lon = document.getElementById('lon').value;
+
+          if (!name || !description || !photo || !lat || !lon) {
+            alert('Semua field harus diisi dan lokasi harus dipilih!');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('name', name);
+          formData.append('description', description);
+          formData.append('photo', photo);
+          formData.append('lat', lat);
+          formData.append('lon', lon);
+
+          const response = await fetch('https://story-api.dicoding.dev/v1/stories', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+
+          const result = await response.json();
+          
+          if (result.error === false) {
+            alert(result.message || 'Story berhasil ditambahkan!');
+            
+            // Show notification if permission granted
+            if (Notification.permission === 'granted') {
+              new Notification('Story Baru Ditambahkan!', {
+                body: `"${name}" berhasil dipublikasikan`,
+                icon: '/final_ass/assets/icons/icon-192.png'
+              });
+            }
+            
+            // Redirect to home
+            window.location.hash = '#/home';
+          } else {
+            alert(`Error: ${result.message}`);
+          }
+        } catch (error) {
+          console.error('Failed to add story:', error);
+          alert('Gagal menambahkan story: ' + error.message);
+        }
+      });
+
+    } catch (error) {
+      console.error('Failed to initialize add page:', error);
+    }
   },
 };
 

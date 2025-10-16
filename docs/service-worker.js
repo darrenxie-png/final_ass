@@ -1,37 +1,95 @@
-// service-worker.js
 const CACHE_NAME = 'webgis-story-v1';
+const BASE_PATH = '/final_ass';
+
+// Files to cache - only cache files that actually exist
 const urlsToCache = [
-  './',
-  './index.html',
-  './style.css',
-  './js/router.js',
-  './js/main.js',
-  './js/add.js',
-  './js/login.js',
-  './js/register.js',
-  './js/home.js',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  BASE_PATH + '/',
+  BASE_PATH + '/index.html',
 ];
 
-// Install Service Worker
+// Install event - cache essential files
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('Cache opened, adding files...');
+      return cache.addAll(urlsToCache).catch(err => {
+        console.log('Some files failed to cache:', err);
+        // Continue even if some files fail
+        return cache.addAll([BASE_PATH + '/']);
+      });
+    })
+  );
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event - serve from cache, fallback to network
+self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests
+  if (!event.request.url.includes(self.location.origin)) {
+    return;
+  }
+
+  // Skip POST requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  event.respondWith(
+    // Try network first
+    fetch(event.request)
+      .then((response) => {
+        // Only cache successful responses
+        if (!response || response.status !== 200) {
+          return response;
+        }
+
+        // Clone and cache successful responses
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try cache
+        return caches.match(event.request)
+          .then((response) => {
+            if (response) {
+              return response;
+            }
+            // If not in cache, return a fallback
+            return caches.match(BASE_PATH + '/index.html');
+          });
       })
   );
 });
 
-// Listen for push events
+// Handle push notifications
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Ada story baru!',
-    icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
+    icon: BASE_PATH + '/assets/icons/icon-192.png',
+    badge: BASE_PATH + '/assets/icons/icon-192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -50,29 +108,14 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window' }).then(windowClients => {
-      // Check if there is already a window/tab open with the target URL
       for (let client of windowClients) {
-        if (client.url === '/' && 'focus' in client) {
+        if (client.url.includes(BASE_PATH) && 'focus' in client) {
           return client.focus();
         }
       }
-      // If no window/tab is open, open a new one
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow(BASE_PATH + '/');
       }
     })
-  );
-});
-
-// Fetch handler
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
   );
 });

@@ -1,10 +1,13 @@
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css'; // pastikan CSS bawaan Leaflet ikut di-load
+import 'leaflet/dist/leaflet.css';
 import { subscribePushNotification } from './notification-helper.js';
 import { BookmarkOperations } from './utils/bookmark-operations.js';
 import { BookmarkStore } from './utils/database.js';
 
 const Home = {
+  map: null,
+  stories: [],
+
   async render() {
     return `
       <section class="home-section">
@@ -19,11 +22,55 @@ const Home = {
     `;
   },
 
+  initializeMap() {
+    // Destroy existing map if it exists
+    if (this.map) {
+      this.map.remove();
+    }
+
+    // Initialize new map centered on Indonesia
+    this.map = L.map('map').setView([-2.5489, 118.0149], 5);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(this.map);
+
+    // Invalidate map size to ensure it renders properly
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 100);
+  },
+
   async renderStories(stories, container) {
     container.innerHTML = '';
     
+    // Clear existing markers
+    if (this.map) {
+      this.map.eachLayer(layer => {
+        if (layer instanceof L.Marker) {
+          this.map.removeLayer(layer);
+        }
+      });
+    }
+    
     for (const story of stories) {
       const isBookmarked = await BookmarkStore.isBookmarked(story.id);
+      
+      // Add marker to map if coordinates exist
+      if (story.lat && story.lon && this.map) {
+        L.marker([story.lat, story.lon])
+          .bindPopup(`
+            <div class="popup-content">
+              <h3>${story.name}</h3>
+              <p>${story.description}</p>
+              <img src="${story.photoUrl}" alt="${story.name}" style="max-width: 200px; border-radius: 4px;">
+            </div>
+          `)
+          .addTo(this.map);
+      }
+      
       container.innerHTML += `
         <article class="story-card" data-id="${story.id}">
           <img src="${story.photoUrl}" alt="${story.name}" class="story-img">
@@ -47,6 +94,9 @@ const Home = {
         window.location.hash = '/login';
         return;
       }
+
+      // Initialize map
+      this.initializeMap();
 
       const storyContainer = document.getElementById('stories');
       const showAllBtn = document.getElementById('showAllBtn');
@@ -80,15 +130,10 @@ const Home = {
             await BookmarkStore.saveBookmark(story);
             btn.classList.add('active');
             btn.textContent = '★';
-
-
-
-
           }
         } catch (error) {
           console.error('Bookmark operation failed:', error);
         }
-        
       });
 
       // View switches
@@ -98,22 +143,12 @@ const Home = {
         await this.renderStories(this.stories, storyContainer);
       });
 
-
-
-
-
-
-
-
-
-
       showBookmarkedBtn.addEventListener('click', async () => {
         showAllBtn.classList.remove('active');
         showBookmarkedBtn.classList.add('active');
         const bookmarks = await BookmarkStore.getBookmarks();
         await this.renderStories(bookmarks, storyContainer);
       });
-
 
     } catch (error) {
       console.error('Failed to initialize home:', error);
