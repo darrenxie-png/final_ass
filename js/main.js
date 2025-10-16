@@ -1,6 +1,9 @@
 // js/main.js
 import './router.js';
-import { initializeNotification } from './notification-helper.js';
+import { initializeNotification } from './utils/notification-helper.js';
+import { urlBase64ToUint8Array } from './utils/web-push.js';
+
+const VAPID_PUBLIC_KEY = 'BKt_cM0Uoq5ijZexhi46VAL7lRT0AjIXdSXuP_guU1NgfzCtSYUYeECFD-_KxX40TnFLbFRXWPwkF0c0epLFF60';
 
 function updateNavbar() {
   const navLinks = document.getElementById('navLinks');
@@ -45,60 +48,40 @@ const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('./service-worker.js');
-      console.log('Service Worker registered');
+      console.log('Service Worker registered successfully');
       return registration;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
+      return null;
     }
   }
+  return null;
 };
 
-const requestNotificationPermission = async () => {
-  if ('Notification' in window) {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
-  }
-  return false;
-};
-
-const subscribePushNotification = async (swRegistration) => {
-  try {
-    const options = {
-      userVisibleOnly: true,
-      applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY' // Replace with your VAPID public key
-    };
-    
-    const subscription = await swRegistration.pushManager.subscribe(options);
-    console.log('Push notification subscription:', subscription);
-    
-    // Here you would typically send the subscription to your server
-    return subscription;
-  } catch (error) {
-    console.error('Failed to subscribe to push:', error);
-    return null;
-  }
-};
-
-// Initialize service worker and push notifications
-window.addEventListener('load', async () => {
+const initializeApp = async () => {
   const swRegistration = await registerServiceWorker();
   if (swRegistration) {
-    const hasPermission = await requestNotificationPermission();
-    if (hasPermission) {
-      await subscribePushNotification(swRegistration);
+    await navigator.serviceWorker.ready;
+    
+    if (Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.log('Notification permission denied');
+        return;
+      }
+    }
+
+    try {
+      const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      const subscription = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
+      console.log('Push notification subscription successful:', subscription);
+    } catch (error) {
+      console.error('Push notification subscription failed:', error);
     }
   }
-});
+};
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/service-worker.js', {
-        scope: '/'
-      });
-      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    } catch (error) {
-      console.error('ServiceWorker registration failed: ', error);
-    }
-  });
-}
+window.addEventListener('load', initializeApp);

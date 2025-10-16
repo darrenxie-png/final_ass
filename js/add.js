@@ -58,14 +58,14 @@ const Add = {
 
     document.getElementById('addForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const formData = new FormData();
-      formData.append('description', document.getElementById('description').value);
-      formData.append('photo', document.getElementById('photo').files[0]);
-      formData.append('lat', document.getElementById('lat').value);
-      formData.append('lon', document.getElementById('lon').value);
-
+      
       try {
+        const formData = new FormData();
+        formData.append('description', document.getElementById('description').value);
+        formData.append('photo', document.getElementById('photo').files[0]);
+        formData.append('lat', document.getElementById('lat').value);
+        formData.append('lon', document.getElementById('lon').value);
+
         const response = await fetch('https://story-api.dicoding.dev/v1/stories', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },

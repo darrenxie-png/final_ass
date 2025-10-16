@@ -6,16 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist"
+    "preview": "vite preview"
   },
   "author": "Darren",
   "license": "MIT",
   "dependencies": {
+    "idb": "^8.0.3",
     "leaflet": "^1.9.4"
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",
     "vite": "^5.0.0"
-  }
+  },
+  "type": "module"
 }

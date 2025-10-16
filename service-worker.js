@@ -1,22 +1,18 @@
 // service-worker.js
 const CACHE_NAME = 'webgis-story-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/js/router.js',
-  '/js/main.js', 
-  '/js/add.js',
-  '/js/login.js',
-  '/js/register.js',
-  '/js/home.js',
-  '/js/indexedDB.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  './',
+  './index.html',
+  './style.css',
+  './js/router.js',
+  './js/main.js',
+  './js/add.js',
+  './js/login.js',
+  './js/register.js',
+  './js/home.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 // Install Service Worker
@@ -27,61 +23,56 @@ self.addEventListener('install', (event) => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
-      .catch((err) => console.log('Failed to cache:', err))
   );
 });
 
-// Cache and return requests
+// Listen for push events
+self.addEventListener('push', (event) => {
+  const options = {
+    body: event.data ? event.data.text() : 'Ada story baru!',
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification('WebGIS Story', options)
+  );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(windowClients => {
+      // Check if there is already a window/tab open with the target URL
+      for (let client of windowClients) {
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If no window/tab is open, open a new one
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
+});
+
+// Fetch handler
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Cache hit - return response
         if (response) {
           return response;
         }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest)
-          .then((response) => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          });
+        return fetch(event.request);
       })
-      .catch(() => {
-        // Return offline page if network request fails
-        return caches.match('/index.html');
-      })
-  );
-});
-
-// Clean up old caches
-self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
-
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
   );
 });

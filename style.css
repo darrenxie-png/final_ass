@@ -353,15 +353,12 @@ textarea {
   font-size: 1.5rem;
   cursor: pointer;
   color: #f1c40f;
-  transition: transform 0.2s ease;
-}
-
-.bookmark-btn:hover {
-  transform: scale(1.1);
+  transition: all 0.2s ease;
 }
 
 .bookmark-btn.active {
   color: #f39c12;
+  transform: scale(1.1);
 }
 
 /* ============================= */
