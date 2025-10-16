@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  base: '/final_ass/',
   server: {
     port: 3000,
     hmr: {
@@ -10,7 +10,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'docs',
+    outdir: 'docs',
     assetsDir: 'assets'
   }
 });
