@@ -1,88 +1,87 @@
 // service-worker.js
 const CACHE_NAME = 'webgis-story-v1';
 const urlsToCache = [
-  './',
-  './index.html',
-  './style.css',
-  './js/router.js',
-  './js/main.js',
-  './js/add.js',
-  './js/login.js',
-  './js/register.js',
-  './js/home.js',
-  './js/indexedDB.js',
-  './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
+  '/',
+  '/index.html',
+  '/style.css',
+  '/js/router.js',
+  '/js/main.js', 
+  '/js/add.js',
+  '/js/login.js',
+  '/js/register.js',
+  '/js/home.js',
+  '/js/indexedDB.js',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 ];
 
-// Install SW & cache files
+// Install Service Worker
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Service Worker: Menyimpan cache');
-      return cache.addAll(urlsToCache);
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+      .catch((err) => console.log('Failed to cache:', err))
   );
 });
 
-// Activate SW & hapus cache lama
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames.map((name) => {
-          if (name !== CACHE_NAME) {
-            console.log('Service Worker: Menghapus cache lama', name);
-            return caches.delete(name);
-          }
-        })
-      )
-    )
-  );
-});
-
-// Fetch request
+// Cache and return requests
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return (
-        response ||
-        fetch(event.request).catch(() =>
-          new Response('Offline Mode: Data tidak tersedia.', {
-            headers: { 'Content-Type': 'text/plain' },
-          })
-        )
+    caches.match(event.request)
+      .then((response) => {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+
+        // Clone the request
+        const fetchRequest = event.request.clone();
+
+        return fetch(fetchRequest)
+          .then((response) => {
+            // Check if valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // Clone the response
+            const responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          });
+      })
+      .catch(() => {
+        // Return offline page if network request fails
+        return caches.match('/index.html');
+      })
+  );
+});
+
+// Clean up old caches
+self.addEventListener('activate', (event) => {
+  const cacheWhitelist = [CACHE_NAME];
+
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
       );
     })
-  );
-});
-
-// Handle push notification
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data.text(),
-    icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    }
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('WebGIS Story', options)
-  );
-});
-
-// Handle notification click
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.openWindow('/')
   );
 });

@@ -1,7 +1,7 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css'; // pastikan CSS bawaan Leaflet ikut di-load
 import { subscribePushNotification } from './notification-helper.js';
-import StoryIdb from './data/story-idb.js';
+import StoryBookmark from './utils/idb.js';
 
 const Home = {
   async render() {
@@ -14,10 +14,23 @@ const Home = {
           <button id="showBookmarkedBtn">Story Tersimpan</button>
         </div>
         <div id="stories" class="story-list"></div>
-        <button id="notifBtn" class="notification-btn">
-          Aktifkan Notifikasi
-        </button>
       </section>
+    `;
+  },
+
+  async renderStoryCard(story, isBookmarked = false) {
+    return `
+      <article class="story-card" data-id="${story.id}">
+        <img src="${story.photoUrl}" alt="${story.name}" class="story-img">
+        <div class="story-info">
+          <h3>${story.name}</h3>
+          <p>${story.description}</p>
+          ${story.lat && story.lon ? `<p class="location">📍 ${story.lat}, ${story.lon}</p>` : ''}
+          <button class="bookmark-btn ${isBookmarked ? 'active' : ''}" data-id="${story.id}">
+            ${isBookmarked ? '★' : '☆'}
+          </button>
+        </div>
+      </article>
     `;
   },
 
@@ -31,6 +44,8 @@ const Home = {
     }
 
     const storyList = document.getElementById('stories');
+    const showAllBtn = document.getElementById('showAllBtn');
+    const showBookmarkedBtn = document.getElementById('showBookmarkedBtn');
 
     // Reset map container
     const mapContainer = L.DomUtil.get('map');
@@ -58,68 +73,53 @@ const Home = {
 
       const result = await response.json();
 
-      const renderStory = async (story) => {
-        const isBookmarked = await StoryIdb.isStoryBookmarked(story.id);
-        return `
-          <article class="story-card">
-            <img src="${story.photoUrl}" alt="Story from ${story.name}" class="story-img" />
-            <div class="story-info">
-              <h3>${story.name}</h3>
-              <p>${story.description}</p>
-              ${story.lat && story.lon ? `<p class="location">📍 ${story.lat}, ${story.lon}</p>` : ''}
-              <button class="bookmark-btn ${isBookmarked ? 'bookmarked' : ''}" 
-                      data-id="${story.id}">
-                ${isBookmarked ? '★' : '☆'}
-              </button>
-            </div>
-          </article>
-        `;
-      };
-
-      const handleBookmarkClick = async (event) => {
-        if (!event.target.classList.contains('bookmark-btn')) return;
-        
-        const storyId = event.target.dataset.id;
-        const storyCard = event.target.closest('.story-card');
-        const isBookmarked = event.target.classList.contains('bookmarked');
-        
-        try {
-          if (isBookmarked) {
-            await StoryIdb.removeBookmark(storyId);
-            event.target.textContent = '☆';
-          } else {
-            const story = result.listStory.find(s => s.id === storyId);
-            await StoryIdb.bookmarkStory(story);
-            event.target.textContent = '★';
-          }
-          event.target.classList.toggle('bookmarked');
-        } catch (error) {
-          console.error('Bookmark error:', error);
+      const renderStories = async (stories) => {
+        storyList.innerHTML = '';
+        for (const story of stories) {
+          const isBookmarked = await StoryBookmark.isBookmarked(story.id);
+          storyList.innerHTML += await this.renderStoryCard(story, isBookmarked);
         }
       };
 
-      document.getElementById('stories').addEventListener('click', handleBookmarkClick);
-      
-      // Show bookmarked stories
-      document.getElementById('showBookmarkedBtn').addEventListener('click', async () => {
-        const bookmarkedStories = await StoryIdb.getBookmarkedStories();
-        storyList.innerHTML = '';
-        for (const story of bookmarkedStories) {
-          storyList.innerHTML += await renderStory(story);
+      // Handle bookmark clicks
+      storyList.addEventListener('click', async (e) => {
+        if (!e.target.classList.contains('bookmark-btn')) return;
+        
+        const storyId = e.target.dataset.id;
+        const story = result.listStory.find(s => s.id === storyId);
+        const isCurrentlyBookmarked = e.target.classList.contains('active');
+
+        try {
+          if (isCurrentlyBookmarked) {
+            await StoryBookmark.deleteBookmark(storyId);
+            e.target.textContent = '☆';
+          } else {
+            await StoryBookmark.saveBookmark(story);
+            e.target.textContent = '★';
+          }
+          e.target.classList.toggle('active');
+        } catch (error) {
+          console.error('Error toggling bookmark:', error);
         }
       });
 
       // Show all stories
-      document.getElementById('showAllBtn').addEventListener('click', async () => {
-        storyList.innerHTML = '';
-        if (result.listStory && result.listStory.length > 0) {
-          for (const story of result.listStory) {
-            storyList.innerHTML += await renderStory(story);
-          }
-        } else {
-          storyList.innerHTML = '<p class="no-stories">Tidak ada story ditemukan.</p>';
-        }
+      showAllBtn.addEventListener('click', async () => {
+        showAllBtn.classList.add('active');
+        showBookmarkedBtn.classList.remove('active');
+        await renderStories(result.listStory);
       });
+
+      // Show bookmarked stories
+      showBookmarkedBtn.addEventListener('click', async () => {
+        showAllBtn.classList.remove('active');
+        showBookmarkedBtn.classList.add('active');
+        const bookmarkedStories = await StoryBookmark.getAllBookmarks();
+        await renderStories(bookmarkedStories);
+      });
+
+      // Initial render
+      await renderStories(result.listStory);
 
       if (result.listStory && result.listStory.length > 0) {
         storyList.innerHTML = '';

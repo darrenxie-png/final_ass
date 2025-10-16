@@ -309,10 +309,16 @@ textarea {
   border-radius: 8px;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 
 .notification-btn:hover {
   background-color: #1e272e;
+}
+
+.notification-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
 }
 
 /* ============================= */
@@ -326,10 +332,11 @@ textarea {
 
 .story-controls button {
   padding: 0.5rem 1rem;
-  border: 1px solid #2f3640;
+  border: 2px solid #2f3640;
   background: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .story-controls button.active {
@@ -346,9 +353,14 @@ textarea {
   font-size: 1.5rem;
   cursor: pointer;
   color: #f1c40f;
+  transition: transform 0.2s ease;
 }
 
-.bookmark-btn.bookmarked {
+.bookmark-btn:hover {
+  transform: scale(1.1);
+}
+
+.bookmark-btn.active {
   color: #f39c12;
 }
 

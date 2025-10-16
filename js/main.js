@@ -1,5 +1,6 @@
 // js/main.js
 import './router.js';
+import { initializeNotification } from './notification-helper.js';
 
 function updateNavbar() {
   const navLinks = document.getElementById('navLinks');
@@ -40,19 +41,64 @@ window.addEventListener('load', updateNavbar);
 window.addEventListener('hashchange', updateNavbar);
 
 // 🔹 Daftarkan Service Worker (PWA)
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('./service-worker.js');
+      console.log('Service Worker registered');
+      return registration;
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  }
+};
+
+const requestNotificationPermission = async () => {
+  if ('Notification' in window) {
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
+  return false;
+};
+
+const subscribePushNotification = async (swRegistration) => {
+  try {
+    const options = {
+      userVisibleOnly: true,
+      applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY' // Replace with your VAPID public key
+    };
+    
+    const subscription = await swRegistration.pushManager.subscribe(options);
+    console.log('Push notification subscription:', subscription);
+    
+    // Here you would typically send the subscription to your server
+    return subscription;
+  } catch (error) {
+    console.error('Failed to subscribe to push:', error);
+    return null;
+  }
+};
+
+// Initialize service worker and push notifications
+window.addEventListener('load', async () => {
+  const swRegistration = await registerServiceWorker();
+  if (swRegistration) {
+    const hasPermission = await requestNotificationPermission();
+    if (hasPermission) {
+      await subscribePushNotification(swRegistration);
+    }
+  }
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const registration = await navigator.serviceWorker.register('../service-worker.js');
-      console.log('ServiceWorker registration successful');
-      
-      // Request notification permission after SW registration
-      if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        console.log('Notification permission:', permission);
-      }
+      const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        scope: '/'
+      });
+      console.log('ServiceWorker registration successful with scope: ', registration.scope);
     } catch (error) {
-      console.error('ServiceWorker registration failed:', error);
+      console.error('ServiceWorker registration failed: ', error);
     }
   });
 }
