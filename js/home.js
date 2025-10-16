@@ -1,7 +1,5 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { subscribePushNotification } from './notification-helper.js';
-import { BookmarkOperations } from './utils/bookmark-operations.js';
 import { BookmarkStore } from './utils/database.js';
 
 const Home = {
@@ -23,10 +21,21 @@ const Home = {
   },
 
   initializeMap() {
+    console.log('Initializing map...');
+    
     // Destroy existing map if it exists
     if (this.map) {
       this.map.remove();
     }
+
+    // Get map container
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+      console.error('Map container not found!');
+      return;
+    }
+
+    console.log('Map container found, creating map...');
 
     // Initialize new map centered on Indonesia
     this.map = L.map('map').setView([-2.5489, 118.0149], 5);
@@ -37,10 +46,21 @@ const Home = {
       maxZoom: 19
     }).addTo(this.map);
 
-    // Invalidate map size to ensure it renders properly
+    console.log('Map created successfully');
+
+    // Invalidate map size multiple times to ensure it renders
     setTimeout(() => {
       this.map.invalidateSize();
+      console.log('Map size invalidated');
     }, 100);
+
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 300);
+
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 500);
   },
 
   async renderStories(stories, container) {
@@ -60,15 +80,19 @@ const Home = {
       
       // Add marker to map if coordinates exist
       if (story.lat && story.lon && this.map) {
-        L.marker([story.lat, story.lon])
-          .bindPopup(`
-            <div class="popup-content">
-              <h3>${story.name}</h3>
-              <p>${story.description}</p>
-              <img src="${story.photoUrl}" alt="${story.name}" style="max-width: 200px; border-radius: 4px;">
-            </div>
-          `)
-          .addTo(this.map);
+        try {
+          L.marker([parseFloat(story.lat), parseFloat(story.lon)])
+            .bindPopup(`
+              <div class="popup-content">
+                <h3>${story.name}</h3>
+                <p>${story.description}</p>
+                <img src="${story.photoUrl}" alt="${story.name}" style="max-width: 200px; border-radius: 4px;">
+              </div>
+            `)
+            .addTo(this.map);
+        } catch (error) {
+          console.error('Error adding marker:', error);
+        }
       }
       
       container.innerHTML += `
@@ -91,23 +115,30 @@ const Home = {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.hash = '/login';
+        window.location.hash = '#/login';
         return;
       }
-
-      // Initialize map
-      this.initializeMap();
 
       const storyContainer = document.getElementById('stories');
       const showAllBtn = document.getElementById('showAllBtn');
       const showBookmarkedBtn = document.getElementById('showBookmarkedBtn');
 
+      // Initialize map first
+      this.initializeMap();
+
       // Load stories
       const response = await fetch('https://story-api.dicoding.dev/v1/stories', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const { listStory } = await response.json();
-      this.stories = listStory;
+      const data = await response.json();
+      
+      if (!data.listStory) {
+        console.error('No stories found:', data);
+        return;
+      }
+
+      this.stories = data.listStory;
+      console.log('Stories loaded:', this.stories.length);
 
       // Initial render
       await this.renderStories(this.stories, storyContainer);

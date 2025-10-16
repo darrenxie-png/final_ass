@@ -388,3 +388,15 @@ textarea {
     font-size: 1.5rem;
   }
 }
+#map {
+  height: 400px;
+  width: 100%;
+  border: 1px solid #ddd;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+.map-container {
+  height: 400px;
+  width: 100%;
+}
