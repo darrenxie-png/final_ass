@@ -1,37 +1,54 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGIS Story</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#2f3640">
-    <meta name="description" content="WebGIS Story Application">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <link rel="stylesheet" href="./style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://cdn.jsdelivr.net/npm/idb@7.1.1/build/idb.min.js"></script>
-    <script type="module" src="./js/main.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGIS Story</title>
+
+  <!-- 🌍 Manifest dan Metadata -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f3640">
+  <meta name="description" content="WebGIS Story Application">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- 🎨 Style -->
+  <link rel="stylesheet" href="./style.css">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-o9N1j+1a8+y4Q4aCj9M+RZqsvsx6pEkE5j1fQ9wZ1nY="
+    crossorigin=""
+  />
+
+  <!-- 💾 IndexedDB Library -->
+  <script src="https://cdn.jsdelivr.net/npm/idb@7.1.1/build/idb.min.js"></script>
 </head>
 <body>
-    <a href="#mainContent" class="skip-link">Skip to Content</a>
-    
-    <header>
-        <h1>WebGIS Story</h1>
-        <nav id="navLinks" class="nav-buttons">
-            <!-- Navigation will be rendered by JavaScript -->
-        </nav>
-    </header>
+  <a href="#mainContent" class="skip-link">Skip to Content</a>
 
-    <main id="mainContent">
-        <!-- Content will be rendered by JavaScript -->
-    </main>
+  <header>
+    <h1>WebGIS Story</h1>
+    <nav id="navLinks" class="nav-buttons">
+      <!-- Navigasi akan di-render lewat JS -->
+    </nav>
+  </header>
 
-    <footer>
-        <p>&copy; 2025 WebGIS Story by Darren</p>
-    </footer>
+  <main id="mainContent">
+    <!-- Konten utama akan di-render lewat JS -->
+  </main>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script type="module" src="./js/main.js"></script>
+  <footer>
+    <p>&copy; 2025 WebGIS Story by Darren</p>
+  </footer>
+
+  <!-- 🗺️ Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-pdKJYbUcFqZfPbq3fPT2Lj5PZp3rDy9ZCkA5xCZOI+c="
+    crossorigin=""
+  ></script>
+
+  <!-- 🚀 Main JavaScript -->
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

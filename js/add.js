@@ -87,8 +87,7 @@ const Add = {
           }
 
           const formData = new FormData();
-          formData.append('name', name);
-          formData.append('description', description);
+          formData.append('description', `${name} - ${description}`);
           formData.append('photo', photo);
           formData.append('lat', lat);
           formData.append('lon', lon);
